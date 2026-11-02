@@ -5,27 +5,70 @@ $field-width: 500px;
 $grid-spacing: 15px;
 $grid-row-cells: 4;
 $tile-size: ($field-width - $grid-spacing * ($grid-row-cells + 1)) / $grid-row-cells;
-$tile-border-radius: 3px;
+$tile-border-radius: 6px;
 
 $mobile-threshold: $field-width + 20px;
 
-$text-color: #776E65;
-$bright-text-color: #f9f6f2;
+$text-color: #dbe8f5;
+$dark-text-color: #2a4366;
+$bright-text-color: #ffffff;
 
-$tile-color: #eee4da;
-$tile-gold-color: #edc22e;
-$tile-gold-glow-color: lighten($tile-gold-color, 15%);
+$sky-top-color: #0a1428;
+$sky-bottom-color: #3b5f8e;
+
+$tile-color: #f4f8fc;
+$tile-glow-color: #b8e4ff;
 
 $game-container-margin-top: 40px;
-$game-container-background: #bbada0;
+$game-container-background: rgba(#cfe3f5, .16);
+
+$button-top-color: #74b6ea;
+$button-bottom-color: #3c7dc0;
 
 $transition-speed: 100ms;
+
+// Layered mountain ranges with snowcaps, drawn as a repeating SVG strip
+$mountains-svg: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'>"
+  + "<path fill='%23a9c1e0' fill-opacity='.45' d='M0 320V170l90-50 110 30 100-50 120 40 140-80 140 70 120-30 140 40 120-90 120 80 120-35 120 75v150z'/>"
+  + "<path fill='%23587aa8' d='M0 320V200l120-70 90 50 120-100 100 80 110-50 120 80 120-120 120 100 110-50 110 60 130-90 110 60 80 50v120z'/>"
+  + "<path fill='%23eef5fc' d='M300 105l30-25 31 25-13-5-12 9-14-10-12 7zM752 98l28-28 34 28-14-5-12 9-14-9-10 7zM1214 115l36-25 46 25-16-6-15 9-17-10-18 9z'/>"
+  + "<path fill='%231e3354' d='M0 320v-70l150-80 110 60 140-90 120 100 120-50 120 60 140-100 140 90 140-60 120 60 140-40v120z'/>"
+  + "<path fill='%23f4f8fc' d='M103 195l47-25 46 25-16-6-15 9-17-10-23 9zM353 170l47-30 36 30-16-7-15 12-15-13-15 10zM858 180l42-30 47 30-17-8-15 12-17-13-20 11zM1133 200l47-20 40 20-15-4-15 8-15-9-20 8z'/>"
+  + "</svg>";
+
+// Builds a tile of pseudo-randomly placed snowflakes
+@function snowflakes($count, $size, $radius, $opacity, $seed) {
+  $flakes: ();
+
+  @for $i from 1 through $count {
+    $x: ($i * $i * 37 + $i * 97 + $seed * 31) % $size;
+    $y: ($i * $i * 61 + $i * 53 + $seed * 71) % $size;
+    $flakes: append($flakes,
+                    radial-gradient(circle at #{$x}px #{$y}px,
+                                    rgba(white, $opacity) $radius,
+                                    rgba(white, 0) $radius + 1px),
+                    comma);
+  }
+
+  @return $flakes;
+}
+
+html {
+  min-height: 100%;
+  background-color: $sky-top-color;
+  background-image: url($mountains-svg),
+                    radial-gradient(circle at 85% 12%, rgba(#fdfbf0, .95) 28px, rgba(#cfe3f5, .25) 30px, rgba(#cfe3f5, 0) 90px),
+                    linear-gradient(to bottom, $sky-top-color 0%, #1b3159 45%, $sky-bottom-color 100%);
+  background-repeat: repeat-x, no-repeat, no-repeat;
+  background-position: center bottom, 0 0, 0 0;
+  background-size: 1440px 320px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
+}
 
 html, body {
   margin: 0;
   padding: 0;
 
-  background: #faf8ef;
   color: $text-color;
   font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
   font-size: 18px;
@@ -33,6 +76,59 @@ html, body {
 
 body {
   margin: 80px 0;
+}
+
+// Falling snow: two parallax layers that slide down one tile per loop
+@include keyframes(snowfall-far) {
+  0% {
+    @include transform(translateY(0));
+  }
+
+  100% {
+    @include transform(translateY(250px));
+  }
+}
+
+@include keyframes(snowfall-near) {
+  0% {
+    @include transform(translateY(0));
+  }
+
+  100% {
+    @include transform(translateY(400px));
+  }
+}
+
+body:before, body:after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body:before {
+  top: -250px;
+  background-image: snowflakes(14, 250, 1.5px, .7, 1);
+  background-size: 250px 250px;
+  @include animation(snowfall-far 16s linear infinite);
+}
+
+body:after {
+  top: -400px;
+  background-image: snowflakes(10, 400, 2.5px, .9, 2);
+  background-size: 400px 400px;
+  @include animation(snowfall-near 10s linear infinite);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:before, body:after {
+    -webkit-animation: none;
+    -moz-animation: none;
+    animation: none;
+  }
 }
 
 .heading {
@@ -45,6 +141,8 @@ h1.title {
   margin: 0;
   display: block;
   float: left;
+  color: $bright-text-color;
+  text-shadow: 0 0 24px rgba($tile-glow-color, .6), 0 3px 0 rgba($sky-top-color, .35);
 }
 
 @include keyframes(move-up) {
@@ -75,7 +173,10 @@ h1.title {
   height: $height;
   line-height: $height + 22px;
   font-weight: bold;
-  border-radius: 3px;
+  border-radius: $tile-border-radius;
+  border: 1px solid rgba(white, .25);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   color: white;
   margin-top: 8px;
   text-align: center;
@@ -89,17 +190,16 @@ h1.title {
     font-size: 13px;
     line-height: 13px;
     text-align: center;
-    color: $tile-color;
+    color: #a9c9e8;
   }
 
   .score-addition {
     position: absolute;
     right: 30px;
-    color: red;
     font-size: $height;
     line-height: $height;
     font-weight: bold;
-    color: rgba($text-color, .9);
+    color: rgba($tile-glow-color, .9);
     z-index: 100;
     @include animation(move-up 600ms ease-in);
     @include animation-fill-mode(both);
@@ -121,7 +221,7 @@ p {
 }
 
 a {
-  color: $text-color;
+  color: $bright-text-color;
   font-weight: bold;
   text-decoration: underline;
   cursor: pointer;
@@ -135,12 +235,14 @@ strong {
 
 hr {
   border: none;
-  border-bottom: 1px solid lighten($text-color, 40%);
+  border-bottom: 1px solid rgba(white, .2);
   margin-top: 20px;
   margin-bottom: 30px;
 }
 
 .container {
+  position: relative;
+  z-index: 1;
   width: $field-width;
   margin: 0 auto;
 }
@@ -158,8 +260,10 @@ hr {
 // Styles for buttons
 @mixin button {
   display: inline-block;
-  background: darken($game-container-background, 20%);
-  border-radius: 3px;
+  background: $button-bottom-color;
+  background: linear-gradient(to bottom, $button-top-color, $button-bottom-color);
+  border-radius: $tile-border-radius;
+  box-shadow: inset 0 1px 0 rgba(white, .4), 0 4px 12px rgba($sky-top-color, .35);
   padding: 0 20px;
   text-decoration: none;
   color: $bright-text-color;
@@ -186,6 +290,10 @@ hr {
     touch-action: none;
 
     background: $game-container-background;
+    border: 1px solid rgba(white, .3);
+    box-shadow: 0 20px 50px rgba($sky-top-color, .45), inset 0 1px 0 rgba(white, .35);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     border-radius: $tile-border-radius * 2;
     width: $field-width;
     height: $field-width;
@@ -201,7 +309,9 @@ hr {
       right: 0;
       bottom: 0;
       left: 0;
-      background: rgba($tile-color, .5);
+      background: rgba(#e8f2fb, .6);
+      color: $dark-text-color;
+      border-radius: $tile-border-radius * 2;
       z-index: 100;
 
       text-align: center;
@@ -235,8 +345,9 @@ hr {
       @include animation-fill-mode(both);
 
       &.game-won {
-        background: rgba($tile-gold-color, .5);
+        background: rgba(#6fe3c0, .45);
         color: $bright-text-color;
+        text-shadow: 0 2px 12px rgba($sky-top-color, .5);
 
 	a.keep-playing-button {
 	  display: inline-block;
@@ -276,7 +387,8 @@ hr {
 
     border-radius: $tile-border-radius;
 
-    background: rgba($tile-color, .35);
+    background: rgba($tile-color, .14);
+    box-shadow: inset 0 2px 6px rgba($sky-top-color, .25);
 
     &:last-child {
       margin-right: 0;
@@ -335,51 +447,41 @@ hr {
   $exponent: 1;
   $limit: 11;
 
-  // Colors for all 11 states, false = no special color
-  $special-colors: false false, // 2
-                   false false, // 4
-                   #f78e48 true, // 8
-                   #fc5e2e true, // 16
-                   #ff3333 true, // 32
-                   #ff0000 true, // 64
-                   false true, // 128
-                   false true, // 256
-                   false true, // 512
-                   false true, // 1024
-                   false true; // 2048
+  // Background and bright-text flag for all 11 states:
+  // fresh snow, ice blues, glacier teals, twilight, then aurora
+  $tile-colors: #f4f8fc false, // 2
+                #dce9f6 false, // 4
+                #b3d4ef false, // 8
+                #85bbe6 true, // 16
+                #5a9fdb true, // 32
+                #3b7fc4 true, // 64
+                #5cc3d0 true, // 128
+                #3ba6bd true, // 256
+                #2c86a6 true, // 512
+                #7b6fd0 true, // 1024
+                #4fd8b0 true; // 2048
 
   // Build tile colors
   @while $exponent <= $limit {
     $power: pow($base, $exponent);
 
     &.tile-#{$power} .tile-inner {
-      // Calculate base background color
-      $gold-percent: ($exponent - 1) / ($limit - 1) * 100;
-      $mixed-background: mix($tile-gold-color, $tile-color, $gold-percent);
+      $nth-color: nth($tile-colors, $exponent);
 
-      $nth-color: nth($special-colors, $exponent);
-
-      $special-background: nth($nth-color, 1);
-      $bright-color: nth($nth-color, 2);
-
-      @if $special-background {
-        $mixed-background: mix($special-background, $mixed-background, 55%);
-      }
-
-      @if $bright-color {
+      @if nth($nth-color, 2) {
         color: $bright-text-color;
+      } @else {
+        color: $dark-text-color;
       }
 
-      // Set background
-      background: $mixed-background;
+      background: nth($nth-color, 1);
 
-      // Add glow
-      $glow-opacity: max($exponent - 4, 0) / ($limit - 4);
+      // Icy glow on the high tiles, frosted edge on all of them
+      $glow-opacity: max($exponent - 6, 0) / ($limit - 6);
 
-      @if not $special-background {
-        box-shadow: 0 0 30px 10px rgba($tile-gold-glow-color, $glow-opacity / 1.8),
-                    inset 0 0 0 1px rgba(white, $glow-opacity / 3);
-      }
+      box-shadow: 0 0 30px 10px rgba($tile-glow-color, $glow-opacity / 1.8),
+                  inset 0 1px 0 rgba(white, .6),
+                  inset 0 -3px 0 rgba($sky-top-color, .12);
 
       // Adjust font size for bigger numbers
       @if $power >= 100 and $power < 1000 {
@@ -401,10 +503,18 @@ hr {
     $exponent: $exponent + 1;
   }
 
-  // Super tiles (above 2048)
+  // The 2048 tile shimmers like the northern lights
+  &.tile-2048 .tile-inner {
+    background: linear-gradient(135deg, #7ef9c7 0%, #4fc3f7 50%, #a98bff 100%);
+    text-shadow: 0 1px 6px rgba($sky-top-color, .35);
+  }
+
+  // Super tiles (above 2048): starry midnight
   &.tile-super .tile-inner {
     color: $bright-text-color;
-    background: mix(#333, $tile-gold-color, 95%);
+    background: #16233f;
+    box-shadow: 0 0 30px 10px rgba($tile-glow-color, .55),
+                inset 0 0 0 2px rgba(#7ef9c7, .7);
 
     font-size: 30px;
 
@@ -473,13 +583,17 @@ hr {
 }
 
 @include smaller($mobile-threshold) {
-  // Redefine variables for smaller screens
-  $field-width: 280px;
-  $grid-spacing: 10px;
-  $grid-row-cells: 4;
-  $tile-size: ($field-width - $grid-spacing * ($grid-row-cells + 1)) / $grid-row-cells;
-  $tile-border-radius: 3px;
-  $game-container-margin-top: 17px;
+  // Redefine variables for smaller screens (global so the game-field mixin sees them)
+  $field-width: 280px !global;
+  $grid-spacing: 10px !global;
+  $grid-row-cells: 4 !global;
+  $tile-size: ($field-width - $grid-spacing * ($grid-row-cells + 1)) / $grid-row-cells !global;
+  $tile-border-radius: 4px !global;
+  $game-container-margin-top: 17px !global;
+
+  html {
+    background-size: 900px 200px, 100% 100%, 100% 100%;
+  }
 
   html, body {
     font-size: 15px;
